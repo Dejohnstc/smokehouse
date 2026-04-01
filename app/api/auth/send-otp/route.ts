@@ -3,8 +3,6 @@ import User from "@/models/User";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
-
 export async function POST(req: Request) {
   try {
     await connectDB();
@@ -33,15 +31,25 @@ export async function POST(req: Request) {
     user.otpExpiry = expiry;
     await user.save();
 
-    // ✅ SEND EMAIL (RESEND)
+    // ✅ INIT RESEND INSIDE FUNCTION (FIX)
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+    if (!RESEND_API_KEY) {
+      throw new Error("❌ RESEND_API_KEY missing");
+    }
+
+    const resend = new Resend(RESEND_API_KEY);
+
+    // ✅ SEND EMAIL
     await resend.emails.send({
-      from: "onboarding@resend.dev", // change later
+      from: "onboarding@resend.dev",
       to: email,
       subject: "Your OTP Code",
       html: `<h2>Your OTP is: ${otp}</h2>`,
     });
 
     return NextResponse.json({ message: "OTP sent" });
+
   } catch (error) {
     console.error("SEND OTP ERROR:", error);
 
