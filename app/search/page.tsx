@@ -1,7 +1,7 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/CartContext";
 
@@ -12,7 +12,8 @@ type Product = {
   image: string;
 };
 
-export default function SearchPage() {
+// 🔥 INNER COMPONENT (your original logic)
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
 
@@ -31,7 +32,7 @@ export default function SearchPage() {
         .then((res) => res.json())
         .then((data) => setProducts(data))
         .finally(() => setLoading(false));
-    }, 300); // 🔥 debounce
+    }, 300);
 
     return () => clearTimeout(timeout);
   }, [query]);
@@ -39,8 +40,8 @@ export default function SearchPage() {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-6">
-  Results for &quot;{query}&quot;
-</h1>
+        Results for &quot;{query}&quot;
+      </h1>
 
       {!query ? (
         <p className="text-gray-500">Start typing to search...</p>
@@ -76,5 +77,14 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// 🔥 WRAPPER (FIXES ERROR)
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<p className="text-center mt-10">Loading...</p>}>
+      <SearchContent />
+    </Suspense>
   );
 }
