@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+import { verifyAdmin } from "@/lib/adminAuth";
 
 type OrderItem = {
   productId: string;
@@ -15,7 +16,7 @@ type OrderRequest = {
   customerEmail: string;
 };
 
-// ✅ CREATE ORDER
+// ✅ CREATE ORDER (PUBLIC)
 export async function POST(req: Request) {
   try {
     await connectDB();
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
 
     const order = await Order.create({
       ...body,
-      status: "paid", // ✅ default
+      status: "paid",
     });
 
     return NextResponse.json({
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ FETCH ORDERS
+// ✅ FETCH ORDERS (PUBLIC FOR NOW)
 export async function GET() {
   try {
     await connectDB();
@@ -75,8 +76,15 @@ export async function GET() {
   }
 }
 
-// ✅ DELETE ORDER
-export async function DELETE(req: Request) {
+// 🔒 DELETE ORDER (ADMIN ONLY)
+export async function DELETE(req: NextRequest) {
+  if (!verifyAdmin(req)) {
+    return NextResponse.json(
+      { message: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
     await connectDB();
 
@@ -109,8 +117,15 @@ export async function DELETE(req: Request) {
   }
 }
 
-// ✅ UPDATE ORDER STATUS
-export async function PATCH(req: Request) {
+// 🔒 UPDATE ORDER STATUS (ADMIN ONLY)
+export async function PATCH(req: NextRequest) {
+  if (!verifyAdmin(req)) {
+    return NextResponse.json(
+      { message: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
     await connectDB();
 
