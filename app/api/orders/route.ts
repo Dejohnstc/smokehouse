@@ -22,7 +22,17 @@ export async function POST(req: Request) {
 
     const body: OrderRequest = await req.json();
 
-    const order = await Order.create(body);
+    if (!body.items || !body.totalAmount || !body.customerEmail) {
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const order = await Order.create({
+      ...body,
+      status: "paid", // ✅ default
+    });
 
     return NextResponse.json({
       ...order.toObject(),
@@ -45,7 +55,6 @@ export async function GET() {
 
     const orders = await Order.find().sort({ createdAt: -1 });
 
-    // 🔥 convert to plain objects
     const cleanOrders = orders.map((o) => ({
       _id: o._id.toString(),
       customerEmail: o.customerEmail,
@@ -80,7 +89,14 @@ export async function DELETE(req: Request) {
       );
     }
 
-    await Order.findByIdAndDelete(id);
+    const deleted = await Order.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return NextResponse.json(
+        { message: "Order not found" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({ message: "Order deleted" });
   } catch (error) {

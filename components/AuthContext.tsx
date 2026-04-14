@@ -9,12 +9,13 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
+  setUser: (user: User | null) => void;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ✅ SAFE TOKEN PARSER
+// ✅ TOKEN PARSER
 function getUserFromToken(): User | null {
   if (typeof window === "undefined") return null;
 
@@ -34,9 +35,10 @@ function getUserFromToken(): User | null {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // ✅ INITIALIZE STATE DIRECTLY (NO useEffect)
+  // ✅ FIX: lazy initialization (no useEffect, no warning)
   const [user, setUser] = useState<User | null>(() => getUserFromToken());
 
+  // ✅ LOGOUT
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
@@ -44,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, logout }}>
+    <AuthContext.Provider value={{ user, setUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

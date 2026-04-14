@@ -22,21 +22,26 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/paystack/init", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email,
-          amount: totalPrice,
+          amount: totalPrice * 100, // ✅ convert to kobo
+          items: cart, // ✅ VERY IMPORTANT (for saving order)
         }),
       });
 
       const data = await res.json();
 
-      // 🔥 Redirect to Paystack
-      window.location.href = data.authorization_url;
+      if (data?.data?.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
+        console.error(data);
+        alert("Payment initialization failed");
+      }
     } catch (err) {
       console.error(err);
       alert("Payment error");
@@ -67,9 +72,8 @@ export default function CheckoutPage() {
 
       <div className="grid md:grid-cols-2 gap-10">
         
-        {/* 🧱 LEFT: FORM */}
+        {/* LEFT */}
         <div className="space-y-6">
-          {/* EMAIL */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Email Address
@@ -84,14 +88,14 @@ export default function CheckoutPage() {
             />
           </div>
 
-          {/* 🔥 TRUST BADGES */}
+          {/* TRUST */}
           <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 space-y-2">
             <p>🔒 Secure payment powered by Paystack</p>
             <p>🚚 Fast delivery</p>
             <p>↩ 7-day return guarantee</p>
           </div>
 
-          {/* PAY BUTTON */}
+          {/* BUTTON */}
           <button
             onClick={handleCheckout}
             disabled={loading}
@@ -101,7 +105,7 @@ export default function CheckoutPage() {
           </button>
         </div>
 
-        {/* 🧱 RIGHT: ORDER SUMMARY */}
+        {/* RIGHT */}
         <div className="bg-white p-6 rounded-xl shadow-sm h-fit">
           <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
 

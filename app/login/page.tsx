@@ -1,77 +1,152 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/components/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const { setUser } = useAuth();
+  const router = useRouter();
 
   const sendOtp = async () => {
-    await fetch("/api/auth/send-otp", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
+    if (!email) return alert("Enter your email");
 
-    setStep(2);
+    setLoading(true);
+
+    try {
+      await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      setStep(2);
+    } catch (err) {
+      alert("Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const verifyOtp = async () => {
-    const res = await fetch("/api/auth/verify-otp", {
-      method: "POST",
-      body: JSON.stringify({ email, otp }),
-    });
+    if (!otp) return alert("Enter OTP");
 
-    const data = await res.json();
+    setLoading(true);
 
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      alert("Login successful");
-      window.location.href = "/";
-    } else {
-      alert("Invalid OTP");
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      const data = await res.json();
+
+      if (data.token) {
+        // ✅ Save token
+        localStorage.setItem("token", data.token);
+
+        // ✅ Decode token + update context
+        try {
+          const payload = JSON.parse(atob(data.token.split(".")[1]));
+
+          setUser({
+            id: payload.id,
+            email: payload.email,
+          });
+        } catch (err) {
+          console.error("Token decode failed");
+        }
+
+        // ✅ Smooth redirect
+        router.push("/");
+      } else {
+        alert("Invalid OTP");
+      }
+    } catch (err) {
+      alert("Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto">
-      {step === 1 ? (
-        <>
-          <h1 className="text-xl mb-4">Enter Email</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border">
+        
+        {/* TITLE */}
+        <h1 className="text-2xl font-bold text-center mb-2">
+          Welcome to Nature Smokehouse
+        </h1>
+        <p className="text-center text-gray-500 text-sm mb-6">
+          Secure login with email verification
+        </p>
 
-          <input
-            className="w-full border p-2 mb-3"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        {step === 1 ? (
+          <>
+            {/* EMAIL INPUT */}
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-black"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-          <button
-            onClick={sendOtp}
-            className="w-full bg-black text-white py-2"
-          >
-            Send OTP
-          </button>
-        </>
-      ) : (
-        <>
-          <h1 className="text-xl mb-4">Enter OTP</h1>
+            {/* BUTTON */}
+            <button
+              onClick={sendOtp}
+              disabled={loading}
+              className="w-full bg-black text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {loading ? "Sending..." : "Send OTP"}
+            </button>
+          </>
+        ) : (
+          <>
+            {/* OTP INPUT */}
+            <input
+              type="text"
+              placeholder="Enter OTP"
+              className="w-full border rounded-lg p-3 mb-4 text-center tracking-widest text-lg focus:outline-none focus:ring-2 focus:ring-black"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+            />
 
-          <input
-            className="w-full border p-2 mb-3"
-            placeholder="OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-          />
+            {/* VERIFY BUTTON */}
+            <button
+              onClick={verifyOtp}
+              disabled={loading}
+              className="w-full bg-black text-white py-3 rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              {loading ? "Verifying..." : "Verify OTP"}
+            </button>
 
-          <button
-            onClick={verifyOtp}
-            className="w-full bg-black text-white py-2"
-          >
-            Verify OTP
-          </button>
-        </>
-      )}
+            {/* BACK */}
+            <button
+              onClick={() => setStep(1)}
+              className="w-full mt-3 text-sm text-gray-500 hover:underline"
+            >
+              Change email
+            </button>
+          </>
+        )}
+
+        {/* TRUST */}
+        <div className="mt-6 text-xs text-gray-400 text-center space-y-1">
+          <p>🔒 Secure authentication</p>
+          <p>No passwords required</p>
+        </div>
+      </div>
     </div>
   );
 }
