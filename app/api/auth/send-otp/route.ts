@@ -18,7 +18,6 @@ export async function POST(req: Request) {
 
     // ✅ Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
     let user = await User.findOne({ email });
@@ -31,7 +30,7 @@ export async function POST(req: Request) {
     user.otpExpiry = expiry;
     await user.save();
 
-    // ✅ INIT RESEND INSIDE FUNCTION (FIX)
+    // ✅ INIT RESEND
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
     if (!RESEND_API_KEY) {
@@ -40,12 +39,38 @@ export async function POST(req: Request) {
 
     const resend = new Resend(RESEND_API_KEY);
 
-    // ✅ SEND EMAIL
+    // ✅ PREMIUM EMAIL TEMPLATE
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "Nature Smokehouse <noreply@obiresoffice.com>",
       to: email,
-      subject: "Your OTP Code",
-      html: `<h2>Your OTP is: ${otp}</h2>`,
+      subject: "Your Verification Code",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9;">
+          <div style="max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 10px; text-align: center;">
+            
+            <h2 style="color: #111;">Verify Your Account</h2>
+            
+            <p style="color: #555; font-size: 14px;">
+              Use the code below to continue. This code will expire in 10 minutes.
+            </p>
+
+            <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; margin: 20px 0; color: #16a34a;">
+              ${otp}
+            </div>
+
+            <p style="color: #777; font-size: 12px;">
+              If you didn’t request this, you can safely ignore this email.
+            </p>
+
+            <hr style="margin: 20px 0;" />
+
+            <p style="font-size: 12px; color: #999;">
+              Nature Smokehouse • Secure Authentication
+            </p>
+
+          </div>
+        </div>
+      `,
     });
 
     return NextResponse.json({ message: "OTP sent" });
