@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 type OrderItem = {
@@ -18,11 +18,14 @@ type Order = {
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const reference = searchParams.get("reference");
 
   const [status, setStatus] = useState("Verifying payment...");
   const [order, setOrder] = useState<Order | null>(null);
+  const [countdown, setCountdown] = useState(5); // ⏳ 5 seconds
 
+  // ✅ VERIFY PAYMENT
   useEffect(() => {
     if (!reference) return;
 
@@ -38,7 +41,7 @@ function PaymentSuccessContent() {
 
         if (res.ok) {
           setStatus("Payment successful 🎉");
-          setOrder(data); // ✅ store order
+          setOrder(data);
         } else {
           setStatus("Payment verification failed");
         }
@@ -50,8 +53,24 @@ function PaymentSuccessContent() {
     verifyPayment();
   }, [reference]);
 
-  // ✅ WHATSAPP MESSAGE
-  const phone = "2348078417869"; // 🔥 replace with your number
+  // ⏳ COUNTDOWN + AUTO REDIRECT
+  useEffect(() => {
+    if (!order) return;
+
+    if (countdown === 0) {
+      router.push("/orders"); // 👉 dashboard
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown, order, router]);
+
+  // ✅ WHATSAPP
+  const phone = "2348078417869";
 
   const message = order
     ? encodeURIComponent(`
@@ -78,20 +97,37 @@ Please confirm my order. Thank you!
         {status}
       </h1>
 
-      {/* ✅ WHATSAPP BUTTON (only show when order exists) */}
+      {/* ⏳ COUNTDOWN */}
+      {order && (
+        <p className="text-gray-500 mb-4">
+          Redirecting to your dashboard in{" "}
+          <span className="font-semibold">{countdown}</span>s...
+        </p>
+      )}
+
+      {/* ✅ WHATSAPP */}
       {order && (
         <a
           href={whatsappLink}
           target="_blank"
-          className="bg-green-600 text-white px-6 py-3 rounded-lg mt-4"
+          className="bg-green-600 text-white px-6 py-3 rounded-lg mt-2"
         >
           Chat on WhatsApp
         </a>
       )}
 
+      {/* 🎯 DASHBOARD BUTTON */}
+      <button
+        onClick={() => router.push("/orders")}
+        className="bg-black text-white px-6 py-2 rounded-lg mt-4"
+      >
+        Go to Dashboard
+      </button>
+
+      {/* OPTIONAL BACK */}
       <Link
         href="/"
-        className="bg-black text-white px-6 py-2 rounded-lg mt-4"
+        className="text-sm text-gray-500 mt-3 hover:underline"
       >
         Back to Home
       </Link>

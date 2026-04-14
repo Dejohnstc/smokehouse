@@ -24,15 +24,22 @@ export default function OrdersPage() {
 
     const fetchOrders = async () => {
       try {
-        const res = await fetch("/api/orders");
+        const res = await fetch("/api/orders", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        // 🔒 HANDLE NOT LOGGED IN
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+
         const data = await res.json();
 
-        // ✅ FILTER USER ORDERS
-        const userOrders = data.filter(
-          (o: Order) => o.customerEmail === user.email
-        );
-
-        setOrders(userOrders);
+        // ✅ NO FRONTEND FILTERING ANYMORE
+        setOrders(data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -52,7 +59,6 @@ export default function OrdersPage() {
         {loading ? (
           <p className="text-gray-500">Loading orders...</p>
         ) : orders.length === 0 ? (
-          /* ❌ EMPTY STATE */
           <div className="text-center py-20">
             <p className="text-gray-500 mb-4">
               You haven’t placed any orders yet
@@ -66,7 +72,6 @@ export default function OrdersPage() {
             </Link>
           </div>
         ) : (
-          /* ✅ ORDERS LIST */
           <div className="space-y-4">
             {orders.map((order) => (
               <Link

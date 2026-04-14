@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
 import { NextResponse, NextRequest } from "next/server";
 import { verifyAdmin } from "@/lib/adminAuth";
+import { getUserFromRequest } from "@/lib/auth";
 
 type OrderItem = {
   productId: string;
@@ -49,12 +50,25 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ FETCH ORDERS (PUBLIC FOR NOW)
-export async function GET() {
+// 🔒 FETCH ORDERS (USER ONLY)
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const user = getUserFromRequest(req);
+
+    // ❌ NOT LOGGED IN
+    if (!user) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // ✅ ONLY FETCH USER ORDERS
+    const orders = await Order.find({
+      customerEmail: user.email,
+    }).sort({ createdAt: -1 });
 
     const cleanOrders = orders.map((o) => ({
       _id: o._id.toString(),
