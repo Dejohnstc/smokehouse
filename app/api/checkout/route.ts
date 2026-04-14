@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       email,
       amount: amount * 100, // kobo
       currency: "NGN",
-      callback_url: "http://localhost:3000/payment-success",
+      callback_url: "https://smokehouse-indol.vercel.app//payment-success",
     }),
   });
 
