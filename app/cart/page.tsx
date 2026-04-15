@@ -6,15 +6,15 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function CartPage() {
   const {
-    cart,
-    totalPrice,
+    cart = [], // ✅ SAFE DEFAULT
+    totalPrice = 0,
     updateQuantity,
     removeFromCart,
     clearCart,
   } = useCart();
 
   // 🛒 EMPTY STATE
-  if (cart.length === 0) {
+  if (!cart || cart.length === 0) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
         <h1 className="text-3xl font-bold mb-3">Your cart is empty 🛒</h1>
@@ -43,79 +43,84 @@ export default function CartPage() {
         <div className="md:col-span-2 space-y-5">
 
           <AnimatePresence>
-            {cart.map((item) => (
-              <motion.div
-                key={item._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -120 }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                onDragEnd={(e, info) => {
-                  if (info.offset.x < -100) {
-                    removeFromCart(item._id); // 🔥 swipe delete
-                  }
-                }}
-                className="flex gap-5 bg-white/80 backdrop-blur border border-gray-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition"
-              >
-                {/* IMAGE */}
-                <img
-                  src={item.image}
-                  className="w-24 h-24 object-cover rounded-xl"
-                />
+            {cart.map((item) => {
+              if (!item) return null; // ✅ SAFETY
 
-                {/* DETAILS */}
-                <div className="flex-1 flex flex-col justify-between">
-                  
-                  <div>
-                    <h2 className="font-semibold text-lg">{item.name}</h2>
+              return (
+                <motion.div
+                  key={item._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -120 }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  onDragEnd={(e, info) => {
+                    if (info.offset.x < -100) {
+                      removeFromCart(item._id);
+                    }
+                  }}
+                  className="flex gap-5 bg-white/80 backdrop-blur border border-gray-100 p-5 rounded-2xl shadow-sm"
+                >
+                  {/* IMAGE (SAFE) */}
+                  <img
+                    src={item.image || "/placeholder.png"} // ✅ FIX
+                    alt={item.name || "product"}
+                    className="w-24 h-24 object-cover rounded-xl"
+                  />
 
-                    <p className="text-sm text-gray-500 mt-1">
-                      ₦{item.price}
-                    </p>
-                  </div>
-
-                  {/* CONTROLS */}
-                  <div className="flex items-center justify-between mt-4">
+                  {/* DETAILS */}
+                  <div className="flex-1 flex flex-col justify-between">
                     
-                    {/* QUANTITY */}
-                    <div className="flex items-center gap-3 bg-gray-100 px-3 py-1 rounded-full">
-                      <button
-                        onClick={() =>
-                          updateQuantity(item._id, item.quantity - 1)
-                        }
-                        className="text-lg px-2 hover:opacity-60"
-                      >
-                        −
-                      </button>
+                    <div>
+                      <h2 className="font-semibold text-lg">
+                        {item.name || "Product"}
+                      </h2>
 
-                      <span className="font-medium text-sm">
-                        {item.quantity}
-                      </span>
-
-                      <button
-                        onClick={() =>
-                          updateQuantity(item._id, item.quantity + 1)
-                        }
-                        className="text-lg px-2 hover:opacity-60"
-                      >
-                        +
-                      </button>
+                      <p className="text-sm text-gray-500 mt-1">
+                        ₦{item.price ?? 0}
+                      </p>
                     </div>
 
-                    {/* HINT */}
-                    <span className="text-xs text-gray-400">
-                      Swipe ← to remove
-                    </span>
-                  </div>
-                </div>
+                    {/* CONTROLS */}
+                    <div className="flex items-center justify-between mt-4">
+                      
+                      <div className="flex items-center gap-3 bg-gray-100 px-3 py-1 rounded-full">
+                        <button
+                          onClick={() =>
+                            updateQuantity(item._id, item.quantity - 1)
+                          }
+                          className="text-lg px-2"
+                        >
+                          −
+                        </button>
 
-                {/* PRICE */}
-                <div className="font-semibold text-lg whitespace-nowrap">
-                  ₦{item.price * item.quantity}
-                </div>
-              </motion.div>
-            ))}
+                        <span className="font-medium text-sm">
+                          {item.quantity ?? 1}
+                        </span>
+
+                        <button
+                          onClick={() =>
+                            updateQuantity(item._id, item.quantity + 1)
+                          }
+                          className="text-lg px-2"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      <span className="text-xs text-gray-400">
+                        Swipe ← to remove
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* PRICE */}
+                  <div className="font-semibold text-lg whitespace-nowrap">
+                    ₦{(item.price ?? 0) * (item.quantity ?? 1)}
+                  </div>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
 
         </div>
@@ -144,18 +149,16 @@ export default function CartPage() {
             <span>₦{totalPrice}</span>
           </div>
 
-          {/* CHECKOUT */}
           <Link
             href="/checkout"
-            className="block w-full text-center bg-black text-white py-3 rounded-full font-medium hover:opacity-90 transition mb-3"
+            className="block w-full text-center bg-black text-white py-3 rounded-full"
           >
             Proceed to Checkout
           </Link>
 
-          {/* CLEAR CART */}
           <button
             onClick={clearCart}
-            className="w-full text-sm text-gray-500 hover:underline"
+            className="w-full text-sm text-gray-500 mt-3"
           >
             Clear Cart
           </button>

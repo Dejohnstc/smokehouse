@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type User = {
   id: string;
@@ -11,11 +12,11 @@ type AuthContextType = {
   user: User | null;
   setUser: (user: User | null) => void;
   logout: () => void;
+  refreshUser: () => void; // 🔥 NEW
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ✅ TOKEN PARSER
 function getUserFromToken(): User | null {
   if (typeof window === "undefined") return null;
 
@@ -30,23 +31,28 @@ function getUserFromToken(): User | null {
       email: payload.email,
     };
   } catch {
+    localStorage.removeItem("token"); // 🔥 FIX
     return null;
   }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // ✅ FIX: lazy initialization (no useEffect, no warning)
+  const router = useRouter();
+
   const [user, setUser] = useState<User | null>(() => getUserFromToken());
 
-  // ✅ LOGOUT
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
-    window.location.href = "/";
+    router.push("/");
+  };
+
+  const refreshUser = () => {
+    setUser(getUserFromToken());
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, logout }}>
+    <AuthContext.Provider value={{ user, setUser, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
