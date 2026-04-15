@@ -32,16 +32,16 @@ export default function CheckoutPage() {
 
     try {
       const res = await fetch("/api/paystack/init", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: user.email,
-          amount: totalPrice * 100,
-          items: cart,
-        }),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  },
+  body: JSON.stringify({
+    amount: totalPrice * 100,
+    items: cart,
+  }),
+});
 
       const data = await res.json();
 
