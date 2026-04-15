@@ -3,7 +3,7 @@ import { CartProvider } from "@/components/CartContext";
 import { AuthProvider } from "@/components/AuthContext";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import BackButton from "@/components/BackButton";
-import PageTransition from "@/components/PageTransition"; // ✅ ADD
+import PageTransition from "@/components/PageTransition";
 
 export default function RootLayout({
   children,
@@ -19,16 +19,20 @@ export default function RootLayout({
         />
       </head>
 
-      <body>
+      <body className="bg-gray-50"> {/* 💎 subtle background */}
+
         <AuthProvider>
           <CartProvider>
 
+            {/* 🔥 GLOBAL BACK BUTTON */}
             <BackButton />
 
-            {/* 🔥 PAGE ANIMATION */}
-            <PageTransition>
-              {children}
-            </PageTransition>
+            {/* 🔥 FIX OVERLAP HERE */}
+            <main className="pt-20 px-4 md:px-6">
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </main>
 
           </CartProvider>
         </AuthProvider>
