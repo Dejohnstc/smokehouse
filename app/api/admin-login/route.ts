@@ -5,8 +5,8 @@ export async function POST(req: Request) {
   const { email, password } = await req.json();
 
   if (
-    email === process.env.ADMIN_EMAIL &&
-    password === process.env.ADMIN_PASSWORD
+    email.trim() === process.env.ADMIN_EMAIL?.trim() &&
+    password.trim() === process.env.ADMIN_PASSWORD?.trim()
   ) {
     const token = signAdminToken({ email });
 

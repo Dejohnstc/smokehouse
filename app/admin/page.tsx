@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-// TYPES
 type OrderItem = {
   name: string;
   quantity: number;
@@ -32,14 +31,40 @@ export default function AdminPage() {
 
     if (!token) {
       router.push("/admin-login");
-      return;
     }
   }, [router]);
 
-  // 🗑 DELETE ORDER
+  // 📦 FETCH ORDERS (SECURED)
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch("/api/orders", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("admin_token")}`, // 🔥 FIXED
+          },
+        });
+
+        if (res.status === 401) {
+          localStorage.removeItem("admin_token");
+          router.push("/admin-login");
+          return;
+        }
+
+        const data: Order[] = await res.json();
+        setOrders(data);
+      } catch {
+        setError("Failed to load orders");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [router]);
+
+  // 🗑 DELETE
   const deleteOrder = async (id: string) => {
-    const confirmDelete = confirm("Delete this order?");
-    if (!confirmDelete) return;
+    if (!confirm("Delete this order?")) return;
 
     setActionLoading(id);
 
@@ -53,18 +78,13 @@ export default function AdminPage() {
         body: JSON.stringify({ id }),
       });
 
-      // 🔥 HANDLE UNAUTHORIZED
       if (res.status === 401) {
-        alert("Session expired. Please login again.");
         localStorage.removeItem("admin_token");
         router.push("/admin-login");
         return;
       }
 
       setOrders((prev) => prev.filter((o) => o._id !== id));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete order");
     } finally {
       setActionLoading(null);
     }
@@ -84,9 +104,7 @@ export default function AdminPage() {
         body: JSON.stringify({ id, status }),
       });
 
-      // 🔥 HANDLE UNAUTHORIZED
       if (res.status === 401) {
-        alert("Session expired. Please login again.");
         localStorage.removeItem("admin_token");
         router.push("/admin-login");
         return;
@@ -97,33 +115,10 @@ export default function AdminPage() {
       setOrders((prev) =>
         prev.map((o) => (o._id === id ? updated : o))
       );
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update order");
     } finally {
       setActionLoading(null);
     }
   };
-
-  // 📦 FETCH ORDERS
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await fetch("/api/orders");
-
-        if (!res.ok) throw new Error("Failed");
-
-        const data: Order[] = await res.json();
-        setOrders(data);
-      } catch (err) {
-        setError("Failed to load orders");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrders();
-  }, []);
 
   // 📊 STATS
   const totalOrders = orders.length;
@@ -132,12 +127,24 @@ export default function AdminPage() {
     0
   );
 
+  const statusColor = (status: string) => {
+    if (status === "paid") return "bg-green-100 text-green-600";
+    if (status === "processing") return "bg-yellow-100 text-yellow-600";
+    if (status === "shipped") return "bg-blue-100 text-blue-600";
+    return "bg-gray-100 text-gray-600";
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-semibold">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-10">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-gray-500 text-sm">
+            Manage orders & operations
+          </p>
+        </div>
 
         <div className="flex gap-3">
           <Link
@@ -158,57 +165,56 @@ export default function AdminPage() {
 
       {/* STATS */}
       <div className="grid md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white p-5 rounded-xl shadow-sm">
+        <div className="bg-white p-6 rounded-2xl shadow border">
           <p className="text-gray-500 text-sm">Orders</p>
-          <h2 className="text-2xl font-bold">{totalOrders}</h2>
+          <h2 className="text-3xl font-bold">{totalOrders}</h2>
         </div>
 
-        <div className="bg-white p-5 rounded-xl shadow-sm">
+        <div className="bg-white p-6 rounded-2xl shadow border">
           <p className="text-gray-500 text-sm">Revenue</p>
-          <h2 className="text-2xl font-bold">₦{totalRevenue}</h2>
+          <h2 className="text-3xl font-bold">₦{totalRevenue}</h2>
         </div>
 
-        <div className="bg-white p-5 rounded-xl shadow-sm">
+        <div className="bg-white p-6 rounded-2xl shadow border">
           <p className="text-gray-500 text-sm">System</p>
           <h2 className="text-green-600 font-semibold">
-            Live
+            ● Live
           </h2>
         </div>
       </div>
 
       {/* ORDERS */}
-      <h2 className="text-xl font-semibold mb-4">Recent Orders</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        Recent Orders
+      </h2>
 
-      {loading && <p>Loading orders...</p>}
+      {loading && (
+        <div className="text-gray-500">Loading orders...</div>
+      )}
+
       {error && <p className="text-red-500">{error}</p>}
-
-      {!loading && orders.length === 0 && <p>No orders yet</p>}
 
       <div className="space-y-5">
         {orders.map((order) => (
           <div
             key={order._id}
-            className="bg-white border rounded-xl p-5 shadow-sm"
+            className="bg-white border rounded-2xl p-5 shadow hover:shadow-md transition"
           >
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-medium">
                 {order.customerEmail}
               </h3>
 
-              <select
-                value={order.status}
-                onChange={(e) =>
-                  updateStatus(order._id, e.target.value)
-                }
-                className="text-sm border rounded-lg px-2 py-1"
+              <span
+                className={`text-xs px-3 py-1 rounded-full ${statusColor(
+                  order.status
+                )}`}
               >
-                <option value="paid">Paid</option>
-                <option value="processing">Processing</option>
-                <option value="shipped">Shipped</option>
-              </select>
+                {order.status}
+              </span>
             </div>
 
-            <p className="text-gray-500 mb-2">
+            <p className="text-gray-500 mb-2 font-medium">
               ₦{order.totalAmount}
             </p>
 
@@ -220,15 +226,29 @@ export default function AdminPage() {
               ))}
             </div>
 
-            <button
-              onClick={() => deleteOrder(order._id)}
-              disabled={actionLoading === order._id}
-              className="text-red-500 text-sm hover:underline disabled:opacity-50"
-            >
-              {actionLoading === order._id
-                ? "Processing..."
-                : "Delete Order"}
-            </button>
+            <div className="flex justify-between items-center">
+              <select
+                value={order.status}
+                onChange={(e) =>
+                  updateStatus(order._id, e.target.value)
+                }
+                className="text-sm border rounded-lg px-3 py-1"
+              >
+                <option value="paid">Paid</option>
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+              </select>
+
+              <button
+                onClick={() => deleteOrder(order._id)}
+                disabled={actionLoading === order._id}
+                className="text-red-500 text-sm hover:underline"
+              >
+                {actionLoading === order._id
+                  ? "Processing..."
+                  : "Delete"}
+              </button>
+            </div>
           </div>
         ))}
       </div>

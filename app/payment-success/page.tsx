@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useCart } from "@/components/CartContext"; // ✅ ADDED
 
 type OrderItem = {
   name: string;
@@ -19,11 +20,13 @@ type Order = {
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { clearCart } = useCart(); // ✅ ADDED
+
   const reference = searchParams.get("reference");
 
   const [status, setStatus] = useState("Verifying payment...");
   const [order, setOrder] = useState<Order | null>(null);
-  const [countdown, setCountdown] = useState<number | null>(null); // 🔥 changed
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   // ✅ VERIFY PAYMENT
   useEffect(() => {
@@ -42,24 +45,27 @@ function PaymentSuccessContent() {
         if (res.ok) {
           setStatus("Payment successful 🎉");
           setOrder(data);
-          setCountdown(5); // 🔥 start countdown HERE
+
+          clearCart(); // 🔥 CLEAR CART HERE
+
+          setCountdown(5);
         } else {
           setStatus("Payment verification failed");
         }
-      } catch (err) {
+      } catch {
         setStatus("Something went wrong");
       }
     };
 
     verifyPayment();
-  }, [reference]);
+  }, [reference, clearCart]);
 
-  // ⏳ COUNTDOWN + REDIRECT
+  // ⏳ COUNTDOWN → DASHBOARD
   useEffect(() => {
     if (countdown === null) return;
 
     if (countdown === 0) {
-      router.push("/orders");
+      router.push("/"); // ✅ dashboard
       return;
     }
 
@@ -94,6 +100,7 @@ Please confirm my order. Thank you!
 
   return (
     <div className="flex flex-col items-center justify-center h-screen text-center px-4">
+
       <h1 className="text-2xl md:text-3xl font-bold text-green-600 mb-4">
         {status}
       </h1>
@@ -101,7 +108,7 @@ Please confirm my order. Thank you!
       {/* ⏳ COUNTDOWN */}
       {countdown !== null && (
         <p className="text-gray-500 mb-4">
-          Redirecting to your dashboard in{" "}
+          Redirecting to dashboard in{" "}
           <span className="font-semibold">{countdown}</span>s...
         </p>
       )}
@@ -117,18 +124,30 @@ Please confirm my order. Thank you!
         </a>
       )}
 
-      {/* 🎯 DASHBOARD BUTTON */}
-      <button
-        onClick={() => router.push("/orders")}
-        className="bg-black text-white px-6 py-2 rounded-lg mt-4"
-      >
-        Go to Dashboard
-      </button>
+      {/* 🎯 BUTTONS */}
+      <div className="flex gap-3 mt-4 flex-wrap justify-center">
+
+        {/* DASHBOARD */}
+        <button
+          onClick={() => router.push("/")}
+          className="bg-black text-white px-6 py-2 rounded-lg"
+        >
+          Go to Dashboard
+        </button>
+
+        {/* 📦 MY ORDERS */}
+        <button
+          onClick={() => router.push("/orders")}
+          className="border px-6 py-2 rounded-lg"
+        >
+          View My Orders
+        </button>
+      </div>
 
       {/* BACK */}
       <Link
         href="/"
-        className="text-sm text-gray-500 mt-3 hover:underline"
+        className="text-sm text-gray-500 mt-4 hover:underline"
       >
         Back to Home
       </Link>

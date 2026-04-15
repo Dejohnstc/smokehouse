@@ -27,29 +27,23 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [mounted, setMounted] = useState(false);
-
-  // ✅ Fix hydration mismatch
-  useEffect(() => {
-    setMounted(true);
+  
+  // ✅ LOAD CART SAFELY (NO useEffect)
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
 
     try {
       const stored = localStorage.getItem("cart");
-      if (stored) {
-        setCart(JSON.parse(stored));
-      }
-    } catch (err) {
-      console.error("Cart load error:", err);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
     }
-  }, []);
+  });
 
-  // ✅ Persist cart
+  // ✅ PERSIST CART
   useEffect(() => {
-    if (mounted) {
-      localStorage.setItem("cart", JSON.stringify(cart));
-    }
-  }, [cart, mounted]);
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
 
   // ✅ Add
   const addToCart = (product: Product) => {
@@ -92,32 +86,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart([]);
   };
 
-  // ✅ Derived values (VERY IMPORTANT)
+  // ✅ Derived values
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const totalPrice = cart.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
   );
-
-  // ✅ Prevent hydration crash
-  if (!mounted) {
-    return (
-      <CartContext.Provider
-        value={{
-          cart: [],
-          totalItems: 0,
-          totalPrice: 0,
-          addToCart: () => {},
-          removeFromCart: () => {},
-          updateQuantity: () => {},
-          clearCart: () => {},
-        }}
-      >
-        {children}
-      </CartContext.Provider>
-    );
-  }
 
   return (
     <CartContext.Provider
