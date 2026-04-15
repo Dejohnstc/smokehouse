@@ -1,23 +1,23 @@
-import { NextRequest } from "next/server";
+// lib/auth.ts
+import jwt from "jsonwebtoken";
 
-export function getUserFromRequest(req: NextRequest) {
+export type AuthUser = {
+  id: string;
+  email: string;
+};
+
+export function getUserFromRequest(req: Request): AuthUser | null {
   const authHeader = req.headers.get("authorization");
 
   if (!authHeader) return null;
 
   const token = authHeader.split(" ")[1];
 
-  if (!token) return null;
-
   try {
-    const payload = JSON.parse(
-      Buffer.from(token.split(".")[1], "base64").toString()
-    );
-
-    return {
-      id: payload.id,
-      email: payload.email,
-    };
+    return jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as AuthUser; // ✅ TYPE SAFE
   } catch {
     return null;
   }

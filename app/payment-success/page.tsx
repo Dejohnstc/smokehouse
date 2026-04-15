@@ -23,7 +23,7 @@ function PaymentSuccessContent() {
 
   const [status, setStatus] = useState("Verifying payment...");
   const [order, setOrder] = useState<Order | null>(null);
-  const [countdown, setCountdown] = useState(5); // ⏳ 5 seconds
+  const [countdown, setCountdown] = useState<number | null>(null); // 🔥 changed
 
   // ✅ VERIFY PAYMENT
   useEffect(() => {
@@ -42,6 +42,7 @@ function PaymentSuccessContent() {
         if (res.ok) {
           setStatus("Payment successful 🎉");
           setOrder(data);
+          setCountdown(5); // 🔥 start countdown HERE
         } else {
           setStatus("Payment verification failed");
         }
@@ -53,21 +54,21 @@ function PaymentSuccessContent() {
     verifyPayment();
   }, [reference]);
 
-  // ⏳ COUNTDOWN + AUTO REDIRECT
+  // ⏳ COUNTDOWN + REDIRECT
   useEffect(() => {
-    if (!order) return;
+    if (countdown === null) return;
 
     if (countdown === 0) {
-      router.push("/orders"); // 👉 dashboard
+      router.push("/orders");
       return;
     }
 
     const timer = setTimeout(() => {
-      setCountdown((prev) => prev - 1);
+      setCountdown((prev) => (prev !== null ? prev - 1 : null));
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [countdown, order, router]);
+  }, [countdown, router]);
 
   // ✅ WHATSAPP
   const phone = "2348078417869";
@@ -98,7 +99,7 @@ Please confirm my order. Thank you!
       </h1>
 
       {/* ⏳ COUNTDOWN */}
-      {order && (
+      {countdown !== null && (
         <p className="text-gray-500 mb-4">
           Redirecting to your dashboard in{" "}
           <span className="font-semibold">{countdown}</span>s...
@@ -124,7 +125,7 @@ Please confirm my order. Thank you!
         Go to Dashboard
       </button>
 
-      {/* OPTIONAL BACK */}
+      {/* BACK */}
       <Link
         href="/"
         className="text-sm text-gray-500 mt-3 hover:underline"

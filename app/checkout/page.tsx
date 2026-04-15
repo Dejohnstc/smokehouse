@@ -1,13 +1,16 @@
 "use client";
 
 import { useCart } from "@/components/CartContext";
+import { useAuth } from "@/components/AuthContext";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function CheckoutPage() {
   const { cart, totalPrice } = useCart();
+  const { user } = useAuth();
+  const router = useRouter();
 
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -15,8 +18,14 @@ export default function CheckoutPage() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (mounted && !user) {
+      router.push("/login");
+    }
+  }, [user, mounted, router]);
+
   const handleCheckout = async () => {
-    if (!email) return alert("Enter your email");
+    if (!user) return alert("Please login first");
     if (cart.length === 0) return alert("Cart is empty");
 
     setLoading(true);
@@ -28,9 +37,9 @@ export default function CheckoutPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          amount: totalPrice * 100, // ✅ convert to kobo
-          items: cart, // ✅ VERY IMPORTANT (for saving order)
+          email: user.email,
+          amount: totalPrice * 100,
+          items: cart,
         }),
       });
 
@@ -39,105 +48,118 @@ export default function CheckoutPage() {
       if (data?.data?.authorization_url) {
         window.location.href = data.data.authorization_url;
       } else {
-        console.error(data);
         alert("Payment initialization failed");
       }
     } catch (err) {
-      console.error(err);
       alert("Payment error");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!mounted) return null;
-
-  if (cart.length === 0) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
-        <h1 className="text-2xl font-bold mb-4">Cart is empty 🛒</h1>
-        <Link
-          href="/"
-          className="bg-black text-white px-6 py-3 rounded-xl"
-        >
-          Continue Shopping
-        </Link>
-      </div>
-    );
-  }
+  if (!mounted || !user) return null;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-10">
-      <h1 className="text-2xl font-bold mb-8">Checkout</h1>
+    <div className="min-h-screen bg-gray-50">
+      
+      {/* HEADER */}
+      <div className="bg-white border-b py-4 px-6">
+        <h1 className="text-xl font-semibold">Checkout</h1>
+      </div>
 
-      <div className="grid md:grid-cols-2 gap-10">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-10 grid md:grid-cols-2 gap-10">
         
-        {/* LEFT */}
+        {/* LEFT SIDE */}
         <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Email Address
-            </label>
-
+          
+          {/* ACCOUNT */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border">
+            <h2 className="font-semibold mb-3">Account</h2>
             <input
-              type="email"
-              placeholder="you@example.com"
-              className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-black"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={user.email}
+              disabled
+              className="w-full border rounded-lg p-3 bg-gray-100 text-sm"
             />
           </div>
 
-          {/* TRUST */}
-          <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 space-y-2">
-            <p>🔒 Secure payment powered by Paystack</p>
-            <p>🚚 Fast delivery</p>
-            <p>↩ 7-day return guarantee</p>
+          {/* DELIVERY */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border">
+            <h2 className="font-semibold mb-3">Delivery</h2>
+            <p className="text-sm text-gray-500">
+              Delivery details will be confirmed after payment via WhatsApp.
+            </p>
           </div>
 
-          {/* BUTTON */}
+          {/* TRUST BADGES */}
+          <div className="bg-white p-5 rounded-2xl shadow-sm border text-sm space-y-2">
+            <p>🔒 Secure payment powered by Paystack</p>
+            <p>🚚 Fast nationwide delivery</p>
+            <p>↩ 7-day satisfaction guarantee</p>
+          </div>
+
+          {/* PAY BUTTON */}
           <button
             onClick={handleCheckout}
             disabled={loading}
-            className="w-full bg-black text-white py-3 rounded-xl text-lg font-medium hover:opacity-90 disabled:opacity-50"
+            className="w-full bg-black text-white py-4 rounded-2xl text-lg font-semibold hover:opacity-90 transition disabled:opacity-50"
           >
             {loading ? "Redirecting..." : `Pay ₦${totalPrice}`}
           </button>
         </div>
 
-        {/* RIGHT */}
-        <div className="bg-white p-6 rounded-xl shadow-sm h-fit">
-          <h2 className="text-lg font-semibold mb-4">Order Summary</h2>
+        {/* RIGHT SIDE */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border h-fit">
+          <h2 className="text-lg font-semibold mb-5">
+            Order Summary
+          </h2>
 
-          <div className="space-y-4 mb-4">
+          <div className="space-y-4">
             {cart.map((item) => (
               <div
                 key={item._id}
-                className="flex justify-between text-sm"
+                className="flex gap-4 items-center"
               >
-                <span>
-                  {item.name} × {item.quantity}
-                </span>
-                <span>₦{item.price * item.quantity}</span>
+                {/* IMAGE */}
+                <img
+                  src={item.image}
+                  className="w-16 h-16 object-cover rounded-lg"
+                />
+
+                {/* DETAILS */}
+                <div className="flex-1">
+                  <p className="text-sm font-medium">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Qty: {item.quantity}
+                  </p>
+                </div>
+
+                {/* PRICE */}
+                <p className="text-sm font-semibold">
+                  ₦{item.price * item.quantity}
+                </p>
               </div>
             ))}
           </div>
 
-          <hr className="mb-4" />
+          <hr className="my-5" />
 
-          <div className="flex justify-between mb-2 text-sm">
-            <span>Subtotal</span>
-            <span>₦{totalPrice}</span>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>₦{totalPrice}</span>
+            </div>
+
+            <div className="flex justify-between text-gray-500">
+              <span>Delivery</span>
+              <span>Calculated after payment</span>
+            </div>
           </div>
 
-          <div className="flex justify-between mb-4 text-sm">
-            <span>Delivery</span>
-            <span className="text-gray-500">
-              Calculated at payment
-            </span>
-          </div>
+          <hr className="my-5" />
 
-          <div className="flex justify-between font-bold text-lg">
+          <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
             <span>₦{totalPrice}</span>
           </div>

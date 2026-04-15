@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { checkOtpRateLimit } from "@/lib/rateLimit"; // ✅ ADD THIS
 
 export async function POST(req: Request) {
   try {
@@ -13,6 +14,16 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { message: "Email required" },
         { status: 400 }
+      );
+    }
+
+    // 🔒 RATE LIMIT (EMAIL BASED)
+    const rate = checkOtpRateLimit(email);
+
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { message: rate.message },
+        { status: 429 }
       );
     }
 
