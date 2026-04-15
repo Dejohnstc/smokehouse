@@ -19,6 +19,16 @@ export default function Navbar() {
   const [showSearch, setShowSearch] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+useEffect(() => {
+  const handleScroll = () => {
+    setScrolled(window.scrollY > 10);
+  };
+
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setHydrated(true));
@@ -57,12 +67,24 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="flex items-center justify-between px-4 md:px-6 py-4 bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 gap-4">
+      <nav
+  className={`sticky top-0 z-50 flex items-center justify-between px-4 md:px-6 gap-4 transition-all duration-300
+  ${
+    scrolled
+      ? "py-2 bg-white/70 backdrop-blur-xl shadow-md border-b border-gray-100"
+      : "py-4 bg-white/90 backdrop-blur-md"
+  }`}
+>
 
         {/* ✅ CLICKABLE LOGO */}
-        <Link href="/" className="text-lg md:text-xl font-bold tracking-wide">
-          Nature Smokehouse
-        </Link>
+        <Link
+  href="/"
+  className={`font-bold tracking-wide transition-all ${
+    scrolled ? "text-base" : "text-lg md:text-xl"
+  }`}
+>
+  Nature Smokehouse
+</Link>
 
         {/* 🔍 DESKTOP SEARCH */}
         <div className="flex-1 max-w-xl hidden md:block">
@@ -76,7 +98,9 @@ export default function Navbar() {
         </div>
 
         {/* RIGHT */}
-        <div className="flex items-center gap-4 relative">
+        <div className={`flex items-center gap-4 relative transition-all ${
+  scrolled ? "scale-95" : "scale-100"
+}`}>
 
           {/* MOBILE SEARCH */}
           <button

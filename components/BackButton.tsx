@@ -9,13 +9,25 @@ export default function BackButton() {
   if (pathname === "/") return null;
 
   return (
-    <div className="fixed top-4 left-4 z-50">
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-2 bg-white/90 backdrop-blur-md border border-gray-200 px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition text-sm font-medium"
-      >
-        ← Back
-      </button>
-    </div>
+    <>
+      {/* 🔥 SAFE SPACING (prevents overlap globally) */}
+      <div className="h-16" />
+
+      {/* 🔥 BUTTON */}
+      <div className="fixed top-3 left-3 z-40">
+        <button
+          onClick={() => {
+            if (window.history.length > 1) {
+              router.back();
+            } else {
+              router.push("/");
+            }
+          }}
+          className="flex items-center gap-2 bg-white/80 backdrop-blur-xl border border-gray-200 px-4 py-2 rounded-full shadow-md hover:shadow-lg transition text-sm font-medium"
+        >
+          ← Back
+        </button>
+      </div>
+    </>
   );
 }

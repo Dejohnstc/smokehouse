@@ -19,20 +19,18 @@ export default function RootLayout({
         />
       </head>
 
-      <body className="bg-gray-50"> {/* 💎 subtle background */}
+      <body className="bg-gray-50">
 
         <AuthProvider>
           <CartProvider>
 
-            {/* 🔥 GLOBAL BACK BUTTON */}
+            {/* 🔥 FLOATING BACK BUTTON */}
             <BackButton />
 
-            {/* 🔥 FIX OVERLAP HERE */}
-            <main className="pt-20 px-4 md:px-6">
-              <PageTransition>
-                {children}
-              </PageTransition>
-            </main>
+            {/* ✅ NO GLOBAL PADDING / NO pt-20 */}
+            <PageTransition>
+              {children}
+            </PageTransition>
 
           </CartProvider>
         </AuthProvider>
