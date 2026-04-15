@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { signAdminToken } from "@/lib/jwt";
 
 export async function POST(req: Request) {
   const { email, password } = await req.json();
@@ -7,16 +8,13 @@ export async function POST(req: Request) {
     email === process.env.ADMIN_EMAIL &&
     password === process.env.ADMIN_PASSWORD
   ) {
-    const res = NextResponse.json({ success: true });
+    const token = signAdminToken({ email });
 
-    res.cookies.set("admin", "true", {
-      httpOnly: true,
-      secure: true,
-      path: "/",
-    });
-
-    return res;
+    return NextResponse.json({ token });
   }
 
-  return NextResponse.json({ error: "Invalid" }, { status: 401 });
+  return NextResponse.json(
+    { message: "Invalid credentials" },
+    { status: 401 }
+  );
 }

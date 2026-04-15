@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     const user = await User.findOne({ email });
 
-    // ✅ Check user exists
+    // ❌ USER NOT FOUND
     if (!user) {
       return NextResponse.json(
         { message: "User not found" },
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Check OTP exists + matches
+    // ❌ INVALID OTP
     if (!user.otp || user.otp !== otp) {
       return NextResponse.json(
         { message: "Invalid OTP" },
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Check expiry safely
+    // ❌ EXPIRED OTP
     if (!user.otpExpiry || user.otpExpiry < new Date()) {
       return NextResponse.json(
         { message: "OTP expired" },
@@ -48,14 +48,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Generate token
-const token = jwt.sign(
-  { id: user._id.toString(), email: user.email },
-  "secret123",
-  { expiresIn: "7d" }
-);
+    // 🔐 USE ENV SECRET
+    const JWT_SECRET = process.env.JWT_SECRET;
 
-    // ✅ Clear OTP after use (IMPORTANT)
+    if (!JWT_SECRET) {
+      throw new Error("JWT_SECRET missing");
+    }
+
+    // ✅ GENERATE TOKEN
+    const token = jwt.sign(
+      {
+        id: user._id.toString(),
+        email: user.email,
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // 🧹 CLEAR OTP
     user.otp = undefined;
     user.otpExpiry = undefined;
     await user.save();

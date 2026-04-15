@@ -5,14 +5,15 @@ import { getUserFromRequest } from "@/lib/auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // ✅ FIXED
 ) {
   try {
     await connectDB();
 
+    const { id } = await context.params; // ✅ IMPORTANT
+
     const user = getUserFromRequest(req);
 
-    // 🔒 NOT LOGGED IN
     if (!user) {
       return NextResponse.json(
         { message: "Unauthorized" },
@@ -20,7 +21,7 @@ export async function GET(
       );
     }
 
-    const order = await Order.findById(params.id);
+    const order = await Order.findById(id);
 
     if (!order) {
       return NextResponse.json(
@@ -29,7 +30,6 @@ export async function GET(
       );
     }
 
-    // 🔒 CHECK OWNERSHIP
     if (order.customerEmail !== user.email) {
       return NextResponse.json(
         { message: "Forbidden" },
