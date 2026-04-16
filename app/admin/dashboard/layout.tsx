@@ -53,11 +53,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <LayoutDashboard size={18} /> Dashboard
           </Link>
 
-          <Link href="/admin/products" className={linkClass("/admin/products")}>
+          <Link href="/admin/dashboard/products" className={linkClass("/admin/dashboard/products")}>
             <ShoppingBag size={18} /> Products
           </Link>
 
-          <Link href="/admin/orders" className={linkClass("/admin/orders")}>
+          <Link href="/admin/dashboard/orders" className={linkClass("/admin/dashboard/orders")}>
             <ClipboardList size={18} /> Orders
           </Link>
         </nav>
@@ -72,11 +72,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <LayoutDashboard size={18} /> Dashboard
           </Link>
 
-          <Link href="/admin/products" className={linkClass("/admin/products")}>
+          <Link href="/admin/dashboard/products" className={linkClass("/admin/dashboard/products")}>
             <ShoppingBag size={18} /> Products
           </Link>
 
-          <Link href="/admin/orders" className={linkClass("/admin/orders")}>
+          <Link href="/admin/dashboard/orders" className={linkClass("/admin/dashboard/orders")}>
             <ClipboardList size={18} /> Orders
           </Link>
         </nav>
