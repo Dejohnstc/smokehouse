@@ -94,12 +94,14 @@ export async function GET(req: NextRequest) {
 
 // 🔒 DELETE ORDER (ADMIN ONLY)
 export async function DELETE(req: NextRequest) {
-  if (!verifyAdmin(req)) {
-    return NextResponse.json(
-      { message: "Unauthorized" },
-      { status: 401 }
-    );
-  }
+  const admin = verifyAdmin(req);
+
+if (!admin) {
+  return NextResponse.json(
+    { message: "Unauthorized" },
+    { status: 401 }
+  );
+}
 
   try {
     await connectDB();

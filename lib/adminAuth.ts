@@ -1,16 +1,28 @@
 import { NextRequest } from "next/server";
+import jwt from "jsonwebtoken";
 
-export function verifyAdmin(req: NextRequest) {
+type AdminPayload = {
+  email: string;
+};
+
+export function verifyAdmin(req: NextRequest): AdminPayload | null {
   const authHeader = req.headers.get("authorization");
 
-  if (!authHeader) return false;
+  if (!authHeader) return null;
 
   const token = authHeader.split(" ")[1];
 
-  // 🔥 SIMPLE CHECK (upgrade later with JWT)
-  if (token !== process.env.ADMIN_SECRET) {
-    return false;
-  }
+  if (!token) return null;
 
-  return true;
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as AdminPayload;
+
+    return decoded;
+  } catch (error) {
+    console.error("JWT VERIFY ERROR:", error);
+    return null;
+  }
 }
