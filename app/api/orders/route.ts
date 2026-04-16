@@ -3,6 +3,8 @@ import Order from "@/models/Order";
 import { NextResponse, NextRequest } from "next/server";
 import { verifyAdmin } from "@/lib/adminAuth";
 import { getUserFromRequest } from "@/lib/auth";
+import { Resend } from "resend";
+
 
 type OrderItem = {
   productId: string;
@@ -152,23 +154,76 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updated = await Order.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    );
+    // 🔥 GET EXISTING ORDER
+    const existing = await Order.findById(id);
 
-    if (!updated) {
+    if (!existing) {
       return NextResponse.json(
         { message: "Order not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      ...updated.toObject(),
-      _id: updated._id.toString(),
+    // 🔥 PREVENT UNNECESSARY UPDATE
+    if (existing.status === status) {
+      return NextResponse.json({
+        ...existing.toObject(),
+        _id: existing._id.toString(),
+      });
+    }
+
+    // 🔥 UPDATE STATUS
+    existing.status = status;
+    await existing.save();
+
+    // 🔥 SEND EMAIL
+    const resend = new Resend(process.env.RESEND_API_KEY!);
+
+    await resend.emails.send({
+      from: "Nature Smokehouse <noreply@smokehouse.obiresoffice.com>",
+      to: existing.customerEmail,
+      subject: "Order Status Update",
+      html: `
+        <div style="font-family: Arial; padding: 20px;">
+          <h2 style="color:#16a34a;">📦 Order Update</h2>
+
+          <p>Your order status has changed.</p>
+
+          <p><strong>Status:</strong> ${status.toUpperCase()}</p>
+          <p><strong>Order ID:</strong> ${existing._id}</p>
+
+          ${
+            status === "processing"
+              ? "<p>We are preparing your order.</p>"
+              : ""
+          }
+
+          ${
+            status === "shipped"
+              ? "<p>Your order is on the way 🚚</p>"
+              : ""
+          }
+
+          ${
+            status === "delivered"
+              ? "<p>Your order has been delivered 🎉</p>"
+              : ""
+          }
+
+          <hr />
+
+          <p style="font-size:12px;color:gray;">
+            Nature Smokehouse
+          </p>
+        </div>
+      `,
     });
+
+    return NextResponse.json({
+      ...existing.toObject(),
+      _id: existing._id.toString(),
+    });
+
   } catch (error) {
     console.error("PATCH ERROR:", error);
 

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCart } from "@/components/CartContext"; // ✅ ADDED
+import { useCart } from "@/components/CartContext";
 
 type OrderItem = {
   name: string;
@@ -20,7 +20,7 @@ type Order = {
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { clearCart } = useCart(); // ✅ ADDED
+  const { clearCart } = useCart();
 
   const reference = searchParams.get("reference");
 
@@ -28,9 +28,20 @@ function PaymentSuccessContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
 
-  // ✅ VERIFY PAYMENT
+  // ✅ VERIFY PAYMENT (SAFE — RUNS ONLY ONCE)
   useEffect(() => {
     if (!reference) return;
+
+    const alreadyProcessed = sessionStorage.getItem(reference);
+
+    // 🔥 PREVENT RE-RUN
+   if (alreadyProcessed) {
+  setTimeout(() => {
+    setStatus("Payment already verified ✅");
+    setCountdown(10);
+  }, 0);
+  return;
+}
 
     const verifyPayment = async () => {
       try {
@@ -46,9 +57,12 @@ function PaymentSuccessContent() {
           setStatus("Payment successful 🎉");
           setOrder(data);
 
-          clearCart(); // 🔥 CLEAR CART HERE
+          clearCart();
 
-          setCountdown(5);
+          // 🔥 MARK AS PROCESSED
+          sessionStorage.setItem(reference, "done");
+
+          setCountdown(10); // 🔥 increased from 5 → 10
         } else {
           setStatus("Payment verification failed");
         }
@@ -60,12 +74,12 @@ function PaymentSuccessContent() {
     verifyPayment();
   }, [reference, clearCart]);
 
-  // ⏳ COUNTDOWN → DASHBOARD
+  // ⏳ COUNTDOWN
   useEffect(() => {
     if (countdown === null) return;
 
     if (countdown === 0) {
-      router.push("/"); // ✅ dashboard
+      router.push("/");
       return;
     }
 
@@ -126,8 +140,6 @@ Please confirm my order. Thank you!
 
       {/* 🎯 BUTTONS */}
       <div className="flex gap-3 mt-4 flex-wrap justify-center">
-
-        {/* DASHBOARD */}
         <button
           onClick={() => router.push("/")}
           className="bg-black text-white px-6 py-2 rounded-lg"
@@ -135,7 +147,6 @@ Please confirm my order. Thank you!
           Go to Dashboard
         </button>
 
-        {/* 📦 MY ORDERS */}
         <button
           onClick={() => router.push("/orders")}
           className="border px-6 py-2 rounded-lg"
@@ -144,7 +155,6 @@ Please confirm my order. Thank you!
         </button>
       </div>
 
-      {/* BACK */}
       <Link
         href="/"
         className="text-sm text-gray-500 mt-4 hover:underline"
