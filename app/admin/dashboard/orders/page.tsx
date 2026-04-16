@@ -136,9 +136,12 @@ export default function AdminOrdersPage() {
         <div className="space-y-5">
           {orders.map((order) => (
             <div
-              key={order._id}
-              className="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition"
-            >
+  key={order._id}
+  onClick={() =>
+    router.push(`/admin/dashboard/orders/${order._id}`)
+  }
+  className="bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer"
+>
               {/* TOP */}
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
                 
@@ -171,14 +174,15 @@ export default function AdminOrdersPage() {
                 </p>
 
                 {/* STATUS CONTROL */}
-                <select
-                  value={order.status}
-                  onChange={(e) =>
-                    updateStatus(order._id, e.target.value)
-                  }
-                  disabled={actionLoading === order._id}
-                  className="border px-3 py-2 rounded-lg text-sm"
-                >
+               <select
+  value={order.status}
+  onClick={(e) => e.stopPropagation()} // 🛑 prevents navigation
+  onChange={(e) =>
+    updateStatus(order._id, e.target.value)
+  }
+  disabled={actionLoading === order._id}
+  className="border px-3 py-2 rounded-lg text-sm"
+>
                   <option value="paid">Paid</option>
                   <option value="processing">Processing</option>
                   <option value="shipped">Shipped</option>

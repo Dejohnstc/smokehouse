@@ -5,7 +5,7 @@ import { verifyAdmin } from "@/lib/adminAuth";
 import { getUserFromRequest } from "@/lib/auth";
 import { Resend } from "resend";
 
-
+// TYPES
 type OrderItem = {
   productId: string;
   name: string;
@@ -19,7 +19,9 @@ type OrderRequest = {
   customerEmail: string;
 };
 
+// ==========================
 // ✅ CREATE ORDER (PUBLIC)
+// ==========================
 export async function POST(req: Request) {
   try {
     await connectDB();
@@ -52,14 +54,34 @@ export async function POST(req: Request) {
   }
 }
 
-// 🔒 FETCH ORDERS (USER ONLY)
+// ==========================
+// 🔒 FETCH ORDERS (ADMIN + USER)
+// ==========================
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
+    // 🔒 ADMIN CHECK FIRST
+    const admin = verifyAdmin(req);
+
+    if (admin) {
+      const orders = await Order.find().sort({ createdAt: -1 });
+
+      return NextResponse.json(
+        orders.map((o) => ({
+          _id: o._id.toString(),
+          customerEmail: o.customerEmail,
+          totalAmount: o.totalAmount,
+          status: o.status,
+          items: o.items,
+          createdAt: o.createdAt,
+        }))
+      );
+    }
+
+    // 👤 NORMAL USER
     const user = getUserFromRequest(req);
 
-    // ❌ NOT LOGGED IN
     if (!user) {
       return NextResponse.json(
         { message: "Unauthorized" },
@@ -67,21 +89,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // ✅ ONLY FETCH USER ORDERS
     const orders = await Order.find({
       customerEmail: user.email,
     }).sort({ createdAt: -1 });
 
-    const cleanOrders = orders.map((o) => ({
-      _id: o._id.toString(),
-      customerEmail: o.customerEmail,
-      totalAmount: o.totalAmount,
-      status: o.status,
-      items: o.items,
-      createdAt: o.createdAt,
-    }));
-
-    return NextResponse.json(cleanOrders);
+    return NextResponse.json(
+      orders.map((o) => ({
+        _id: o._id.toString(),
+        customerEmail: o.customerEmail,
+        totalAmount: o.totalAmount,
+        status: o.status,
+        items: o.items,
+        createdAt: o.createdAt,
+      }))
+    );
   } catch (error) {
     console.error("GET ERROR:", error);
 
@@ -92,16 +113,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// ==========================
 // 🔒 DELETE ORDER (ADMIN ONLY)
+// ==========================
 export async function DELETE(req: NextRequest) {
   const admin = verifyAdmin(req);
 
-if (!admin) {
-  return NextResponse.json(
-    { message: "Unauthorized" },
-    { status: 401 }
-  );
-}
+  if (!admin) {
+    return NextResponse.json(
+      { message: "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
   try {
     await connectDB();
@@ -135,9 +158,13 @@ if (!admin) {
   }
 }
 
+// ==========================
 // 🔒 UPDATE ORDER STATUS (ADMIN ONLY)
+// ==========================
 export async function PATCH(req: NextRequest) {
-  if (!verifyAdmin(req)) {
+  const admin = verifyAdmin(req);
+
+  if (!admin) {
     return NextResponse.json(
       { message: "Unauthorized" },
       { status: 401 }
@@ -156,7 +183,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // 🔥 GET EXISTING ORDER
     const existing = await Order.findById(id);
 
     if (!existing) {
@@ -166,7 +192,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // 🔥 PREVENT UNNECESSARY UPDATE
+    // 🚫 Prevent unnecessary update
     if (existing.status === status) {
       return NextResponse.json({
         ...existing.toObject(),
@@ -174,15 +200,15 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
-    // 🔥 UPDATE STATUS
+    // ✅ Update
     existing.status = status;
     await existing.save();
 
-    // 🔥 SEND EMAIL
+    // 📧 SEND EMAIL
     const resend = new Resend(process.env.RESEND_API_KEY!);
 
     await resend.emails.send({
-      from: "Nature Smokehouse <noreply@smokehouse.obiresoffice.com>",
+      from: "Nature Smokehouse <noreply@obiresoffice.com>",
       to: existing.customerEmail,
       subject: "Order Status Update",
       html: `
