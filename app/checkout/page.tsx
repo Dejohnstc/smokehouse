@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthContext";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api"; // 🔥 IMPORTANT
 
 export default function CheckoutPage() {
   const { cart, totalPrice } = useCart();
@@ -14,54 +15,72 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // ✅ Prevent hydration issues
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // 🔒 Protect route
   useEffect(() => {
     if (mounted && !user) {
       router.push("/login");
     }
   }, [user, mounted, router]);
 
+  // 💳 HANDLE CHECKOUT
   const handleCheckout = async () => {
-    if (!user) return alert("Please login first");
-    if (cart.length === 0) return alert("Cart is empty");
+    if (!user) {
+      alert("Please login first");
+      router.push("/login");
+      return;
+    }
+
+    if (!cart || cart.length === 0) {
+      alert("Cart is empty");
+      return;
+    }
 
     setLoading(true);
 
     try {
-      const res = await fetch("/api/paystack/init", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  },
-  body: JSON.stringify({
-    amount: totalPrice * 100,
-    items: cart,
-  }),
-});
-
-      const data = await res.json();
+      const data = await apiFetch("/api/paystack/init", {
+        method: "POST",
+        body: JSON.stringify({
+          amount: totalPrice * 100,
+          items: cart,
+        }),
+      });
 
       if (data?.data?.authorization_url) {
         window.location.href = data.data.authorization_url;
       } else {
+        console.error(data);
         alert("Payment initialization failed");
       }
-    } catch (err) {
-      alert("Payment error");
-    } finally {
+    } catch (err: unknown) {
+  console.error(err);
+
+  if (err instanceof Error) {
+    if (err.message === "Unauthorized") {
+      alert("Session expired. Please login again.");
+      router.push("/login");
+    } else {
+      alert(err.message);
+    }
+  } else {
+    alert("Payment error");
+  }
+} finally {
       setLoading(false);
     }
   };
 
+  // ⏳ Prevent render issues
   if (!mounted || !user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      
+
       {/* HEADER */}
       <div className="bg-white border-b py-4 px-6">
         <h1 className="text-xl font-semibold">Checkout</h1>
@@ -69,7 +88,7 @@ export default function CheckoutPage() {
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-10 grid md:grid-cols-2 gap-10">
         
-        {/* LEFT SIDE */}
+        {/* LEFT */}
         <div className="space-y-6">
           
           {/* ACCOUNT */}
@@ -90,7 +109,7 @@ export default function CheckoutPage() {
             </p>
           </div>
 
-          {/* TRUST BADGES */}
+          {/* TRUST */}
           <div className="bg-white p-5 rounded-2xl shadow-sm border text-sm space-y-2">
             <p>🔒 Secure payment powered by Paystack</p>
             <p>🚚 Fast nationwide delivery</p>
@@ -107,7 +126,7 @@ export default function CheckoutPage() {
           </button>
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* RIGHT */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border h-fit">
           <h2 className="text-lg font-semibold mb-5">
             Order Summary
@@ -121,7 +140,7 @@ export default function CheckoutPage() {
               >
                 {/* IMAGE */}
                 <img
-                  src={item.image}
+                  src={item.image || "/placeholder.png"}
                   className="w-16 h-16 object-cover rounded-lg"
                 />
 
