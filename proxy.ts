@@ -6,13 +6,13 @@ export function proxy(request: NextRequest) {
   const adminCookie = request.cookies.get("admin");
 
   // ✅ Allow admin login page
-  if (pathname === "/admin-login") {
+  if (pathname === "/admin") {
     return NextResponse.next();
   }
 
   // ✅ Protect admin routes
   if (!adminCookie && pathname.startsWith("/admin")) {
-    return NextResponse.redirect(new URL("/admin-login", request.url));
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   return NextResponse.next();
