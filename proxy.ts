@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const adminCookie = request.cookies.get("admin");
 
-  // ✅ Allow admin login page
+  // ✅ Allow login page
   if (pathname === "/admin") {
     return NextResponse.next();
   }
 
-  // ✅ Protect admin routes
+  // 🔒 Protect admin routes
   if (!adminCookie && pathname.startsWith("/admin")) {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
@@ -19,5 +19,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/admin"],
+  matcher: ["/admin/:path*"],
 };
